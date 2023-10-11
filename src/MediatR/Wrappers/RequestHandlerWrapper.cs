@@ -14,12 +14,14 @@ public abstract class RequestHandlerBase
 
 public abstract class RequestHandlerWrapper<TResponse> : RequestHandlerBase
 {
+    public Type HanlderType { get; protected set; } = default!;
     public abstract Task<TResponse> Handle(IRequest<TResponse> request, IServiceProvider serviceProvider,
         CancellationToken cancellationToken);
 }
 
 public abstract class RequestHandlerWrapper : RequestHandlerBase
 {
+    public Type HanlderType { get; protected set; } = default!;
     public abstract Task<Unit> Handle(IRequest request, IServiceProvider serviceProvider,
         CancellationToken cancellationToken);
 }
@@ -34,8 +36,12 @@ public class RequestHandlerWrapperImpl<TRequest, TResponse> : RequestHandlerWrap
     public override Task<TResponse> Handle(IRequest<TResponse> request, IServiceProvider serviceProvider,
         CancellationToken cancellationToken)
     {
-        Task<TResponse> Handler() => serviceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>()
-            .Handle((TRequest) request, cancellationToken);
+        Task<TResponse> Handler()
+        {
+            var handler = serviceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
+            HanlderType = handler.GetType();
+            return handler.Handle((TRequest) request, cancellationToken);
+        }
 
         return serviceProvider
             .GetServices<IPipelineBehavior<TRequest, TResponse>>()
